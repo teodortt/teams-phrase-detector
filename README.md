@@ -40,7 +40,9 @@ javascript: (function () {
     );
     if (!input) return;
     const keywords = input.split(",").map((k) => k.trim());
+    let muted = false;
     function playBeep() {
+      if (muted) return;
       const ctx = new (window.AudioContext || window.webkitAudioContext)(),
         osc = ctx.createOscillator(),
         gain = ctx.createGain();
@@ -153,6 +155,8 @@ javascript: (function () {
     const stop = watchCaptionsWithAlert(keywords, (text) =>
       console.log("Keyword detected:", text)
     );
+
+    // ✅ Stop Button
     const stopButton = document.createElement("button");
     stopButton.innerText = "🛑 Stop Detector";
     Object.assign(stopButton.style, {
@@ -172,8 +176,32 @@ javascript: (function () {
     stopButton.onclick = () => {
       stop();
       stopButton.remove();
+      muteButton.remove();
       alert("✅ Detector stopped.");
     };
+
+    // ✅ Mute/Unmute Button
+    const muteButton = document.createElement("button");
+    muteButton.innerText = "🔊 Sound On";
+    Object.assign(muteButton.style, {
+      position: "fixed",
+      bottom: "60px",
+      right: "20px",
+      zIndex: 999999,
+      padding: "10px 20px",
+      background: "black",
+      color: "white",
+      fontSize: "16px",
+      border: "none",
+      borderRadius: "8px",
+      cursor: "pointer",
+    });
+    document.body.appendChild(muteButton);
+    muteButton.onclick = () => {
+      muted = !muted;
+      muteButton.innerText = muted ? "🔇 Muted" : "🔊 Sound On";
+    };
+
     alert("✅ Teams Phrase Detector is running...");
   } catch (e) {
     console.error("Bookmarklet error:", e);
