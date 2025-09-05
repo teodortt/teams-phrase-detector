@@ -34,178 +34,150 @@ If any keyword is detected:
 ```javascript
 javascript: (function () {
   try {
-    const input = prompt(
+    const e = prompt(
       "Enter keywords (comma separated):",
       "Computer,Meeting,Project"
     );
-    if (!input) return;
-    const keywords = input.split(",").map((k) => k.trim());
-    let muted = false;
-    function playBeep() {
-      if (muted) return;
-      const ctx = new (window.AudioContext || window.webkitAudioContext)(),
-        osc = ctx.createOscillator(),
-        gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = "square";
-      osc.frequency.value = 1000;
-      gain.gain.value = 0.5;
-      osc.start();
-      osc.stop(ctx.currentTime + 0.8);
-    }
-    function flashScreen(matchedWord) {
-      if (document.getElementById("flash-alert")) return;
-      const o = document.createElement("div");
-      o.id = "flash-alert";
-      Object.assign(o.style, {
+    if (!e) return;
+    const t = e.split(",").map((e) => e.trim());
+    let o = !1;
+    const n = (function (e, t, n = 1e3) {
+        const r = e.map((e) => e.toLowerCase()),
+          c = new WeakSet();
+        let i;
+        function d(e) {
+          if (
+            !e.matches ||
+            !e.matches('span[data-tid="closed-caption-text"]') ||
+            c.has(e)
+          )
+            return;
+          c.add(e);
+          let i,
+            d = e.textContent.trim();
+          function a() {
+            const n = e.textContent.trim(),
+              c = n.toLowerCase(),
+              i = r.find((e) => c.includes(e));
+            i &&
+              (!(function () {
+                if (o) return;
+                const e = new (window.AudioContext ||
+                    window.webkitAudioContext)(),
+                  t = e.createOscillator(),
+                  n = e.createGain();
+                t.connect(n),
+                  n.connect(e.destination),
+                  (t.type = "square"),
+                  (t.frequency.value = 1e3),
+                  (n.gain.value = 0.5),
+                  t.start(),
+                  t.stop(e.currentTime + 0.8);
+              })(),
+              (function (e) {
+                if (document.getElementById("flash-alert")) return;
+                const t = document.createElement("div");
+                (t.id = "flash-alert"),
+                  Object.assign(t.style, {
+                    position: "fixed",
+                    top: "0",
+                    left: "0",
+                    width: "100vw",
+                    height: "100vh",
+                    backgroundColor: "red",
+                    opacity: "0.8",
+                    zIndex: "999999",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    color: "white",
+                    fontSize: "48px",
+                    fontWeight: "bold",
+                    textAlign: "center",
+                  });
+                const o = document.createElement("div");
+                o.textContent = "⚠ ALERT: Keyword Detected! ⚠";
+                const n = document.createElement("div");
+                (n.textContent = "Matched Word: " + e),
+                  t.appendChild(o),
+                  t.appendChild(n),
+                  document.body.appendChild(t);
+                let r = !0;
+                const c = setInterval(() => {
+                  (r = !r), (t.style.opacity = r ? "0.8" : "0");
+                }, 300);
+                setTimeout(() => {
+                  clearInterval(c), t.remove();
+                }, 5e3);
+              })(i),
+              t && t(n));
+          }
+          new MutationObserver(function () {
+            const t = e.textContent.trim();
+            t !== d && ((d = t), clearTimeout(i), (i = setTimeout(a, n)));
+          }).observe(e, { characterData: !0, subtree: !0, childList: !0 }),
+            (i = setTimeout(a, n));
+        }
+        return (
+          document
+            .querySelectorAll('span[data-tid="closed-caption-text"]')
+            .forEach(d),
+          (i = new MutationObserver((e) => {
+            for (const t of e)
+              for (const e of t.addedNodes)
+                1 === e.nodeType &&
+                  (d(e),
+                  e
+                    .querySelectorAll?.('span[data-tid="closed-caption-text"]')
+                    .forEach(d));
+          })),
+          i.observe(document.body, { childList: !0, subtree: !0 }),
+          () => i.disconnect()
+        );
+      })(t, (e) => console.log("Keyword detected:", e)),
+      r = document.createElement("button");
+    (r.innerText = "🛑 Stop Detector"),
+      Object.assign(r.style, {
         position: "fixed",
-        top: "0",
-        left: "0",
-        width: "100vw",
-        height: "100vh",
-        backgroundColor: "red",
-        opacity: "0.8",
-        zIndex: "999999",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        alignItems: "center",
+        bottom: "20px",
+        right: "20px",
+        zIndex: 999999,
+        padding: "10px 20px",
+        background: "black",
         color: "white",
-        fontSize: "48px",
-        fontWeight: "bold",
-        textAlign: "center",
+        fontSize: "16px",
+        border: "none",
+        borderRadius: "8px",
+        cursor: "pointer",
+      }),
+      document.body.appendChild(r),
+      (r.onclick = () => {
+        n(), r.remove(), c.remove(), alert("✅ Detector stopped.");
       });
-      const line1 = document.createElement("div");
-      line1.textContent = "⚠ ALERT: Keyword Detected! ⚠";
-      const line2 = document.createElement("div");
-      line2.textContent = "Matched Word: " + matchedWord;
-      o.appendChild(line1);
-      o.appendChild(line2);
-      document.body.appendChild(o);
-      let v = true;
-      const i = setInterval(() => {
-        v = !v;
-        o.style.opacity = v ? "0.8" : "0";
-      }, 300);
-      setTimeout(() => {
-        clearInterval(i);
-        o.remove();
-      }, 5000);
-    }
-    function watchCaptionsWithAlert(words, onMatch, delay = 1000) {
-      const lowerKeywords = words.map((w) => w.toLowerCase()),
-        seen = new WeakSet();
-      let mainObserver;
-      function handleElement(el) {
-        if (
-          !el.matches ||
-          !el.matches('span[data-tid="closed-caption-text"]') ||
-          seen.has(el)
-        )
-          return;
-        seen.add(el);
-        let lastText = el.textContent.trim(),
-          stableTimer;
-        function checkForUpdate() {
-          const currentText = el.textContent.trim();
-          if (currentText !== lastText) {
-            lastText = currentText;
-            clearTimeout(stableTimer);
-            stableTimer = setTimeout(finalCheck, delay);
-          }
-        }
-        function finalCheck() {
-          const text = el.textContent.trim(),
-            lowerText = text.toLowerCase(),
-            matchedWord = lowerKeywords.find((word) =>
-              lowerText.includes(word)
-            );
-          if (matchedWord) {
-            playBeep();
-            flashScreen(matchedWord);
-            if (onMatch) onMatch(text);
-          }
-        }
-        new MutationObserver(checkForUpdate).observe(el, {
-          characterData: true,
-          subtree: true,
-          childList: true,
-        });
-        stableTimer = setTimeout(finalCheck, delay);
-      }
-      document
-        .querySelectorAll('span[data-tid="closed-caption-text"]')
-        .forEach(handleElement);
-      mainObserver = new MutationObserver((mutations) => {
-        for (const mutation of mutations) {
-          for (const node of mutation.addedNodes) {
-            if (node.nodeType === 1) {
-              handleElement(node);
-              node
-                .querySelectorAll?.('span[data-tid="closed-caption-text"]')
-                .forEach(handleElement);
-            }
-          }
-        }
-      });
-      mainObserver.observe(document.body, { childList: true, subtree: true });
-      return () => mainObserver.disconnect();
-    }
-    const stop = watchCaptionsWithAlert(keywords, (text) =>
-      console.log("Keyword detected:", text)
-    );
-
-    // ✅ Stop Button
-    const stopButton = document.createElement("button");
-    stopButton.innerText = "🛑 Stop Detector";
-    Object.assign(stopButton.style, {
-      position: "fixed",
-      bottom: "20px",
-      right: "20px",
-      zIndex: 999999,
-      padding: "10px 20px",
-      background: "black",
-      color: "white",
-      fontSize: "16px",
-      border: "none",
-      borderRadius: "8px",
-      cursor: "pointer",
-    });
-    document.body.appendChild(stopButton);
-    stopButton.onclick = () => {
-      stop();
-      stopButton.remove();
-      muteButton.remove();
-      alert("✅ Detector stopped.");
-    };
-
-    // ✅ Mute/Unmute Button
-    const muteButton = document.createElement("button");
-    muteButton.innerText = "🔊 Sound On";
-    Object.assign(muteButton.style, {
-      position: "fixed",
-      bottom: "60px",
-      right: "20px",
-      zIndex: 999999,
-      padding: "10px 20px",
-      background: "black",
-      color: "white",
-      fontSize: "16px",
-      border: "none",
-      borderRadius: "8px",
-      cursor: "pointer",
-    });
-    document.body.appendChild(muteButton);
-    muteButton.onclick = () => {
-      muted = !muted;
-      muteButton.innerText = muted ? "🔇 Muted" : "🔊 Sound On";
-    };
-
-    alert("✅ Teams Phrase Detector is running...");
+    const c = document.createElement("button");
+    (c.innerText = "🔊 Sound On"),
+      Object.assign(c.style, {
+        position: "fixed",
+        bottom: "60px",
+        right: "20px",
+        zIndex: 999999,
+        padding: "10px 20px",
+        background: "black",
+        color: "white",
+        fontSize: "16px",
+        border: "none",
+        borderRadius: "8px",
+        cursor: "pointer",
+      }),
+      document.body.appendChild(c),
+      (c.onclick = () => {
+        (o = !o), (c.innerText = o ? "🔇 Muted" : "🔊 Sound On");
+      }),
+      alert("✅ Teams Phrase Detector is running...");
   } catch (e) {
-    console.error("Bookmarklet error:", e);
-    alert("❌ Error: Check console for details.");
+    console.error("Bookmarklet error:", e),
+      alert("❌ Error: Check console for details.");
   }
 })();
 ```
