@@ -21,7 +21,7 @@ If any keyword is detected:
 - Shows a red flashing overlay for 5 seconds
 - Displays the matched word
 
-## 📌 🛠️ Installation & Usage (as bookmark)
+## 🛠️ Installation & Usage (as bookmark)
 
 1. Copy the code below and paste it as the URL of a new bookmark
 
@@ -94,6 +94,7 @@ javascript: (function () {
     function watchCaptionsWithAlert(words, onMatch, delay = 1000) {
       const lowerKeywords = words.map((w) => w.toLowerCase()),
         seen = new WeakSet();
+      let mainObserver;
       function handleElement(el) {
         if (
           !el.matches ||
@@ -134,7 +135,7 @@ javascript: (function () {
       document
         .querySelectorAll('span[data-tid="closed-caption-text"]')
         .forEach(handleElement);
-      new MutationObserver((mutations) => {
+      mainObserver = new MutationObserver((mutations) => {
         for (const mutation of mutations) {
           for (const node of mutation.addedNodes) {
             if (node.nodeType === 1) {
@@ -145,12 +146,34 @@ javascript: (function () {
             }
           }
         }
-      }).observe(document.body, { childList: true, subtree: true });
+      });
+      mainObserver.observe(document.body, { childList: true, subtree: true });
       return () => mainObserver.disconnect();
     }
-    watchCaptionsWithAlert(keywords, (text) =>
-      console.log("Keyword detected in caption:", text)
+    const stop = watchCaptionsWithAlert(keywords, (text) =>
+      console.log("Keyword detected:", text)
     );
+    const stopButton = document.createElement("button");
+    stopButton.innerText = "🛑 Stop Detector";
+    Object.assign(stopButton.style, {
+      position: "fixed",
+      bottom: "20px",
+      right: "20px",
+      zIndex: 999999,
+      padding: "10px 20px",
+      background: "black",
+      color: "white",
+      fontSize: "16px",
+      border: "none",
+      borderRadius: "8px",
+      cursor: "pointer",
+    });
+    document.body.appendChild(stopButton);
+    stopButton.onclick = () => {
+      stop();
+      stopButton.remove();
+      alert("✅ Detector stopped.");
+    };
     alert("✅ Teams Phrase Detector is running...");
   } catch (e) {
     console.error("Bookmarklet error:", e);
